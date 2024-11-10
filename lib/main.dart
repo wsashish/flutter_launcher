@@ -1,6 +1,8 @@
 import 'package:fl_live_launcher/apps.dart';
+import 'package:fl_live_launcher/phone.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fl_live_launcher/home.dart';
 
 void main() {
   runApp(MyApp());
@@ -27,6 +29,8 @@ class MyApp extends StatelessWidget {
                 switch (settings.name) {
                   case "apps":
                     return AppsPage();
+                  case "phone":
+                    return PhonePage();
                   default:
                     return HomePage();
                 }
@@ -37,25 +41,4 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class HomePage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Container(),
-      bottomNavigationBar: BottomAppBar(
-        color: Colors.transparent,
-        elevation: 0,
-        child: Container(
-          height: 70,
-          child: Center(
-            child: IconButton(
-              icon: Icon(Icons.apps),
-              onPressed: () => Navigator.pushNamed(context, "apps"),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+

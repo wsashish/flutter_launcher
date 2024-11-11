@@ -1,0 +1,25 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Flutter: Get Packages",
+      "type": "shell",
+      "command": "flutter pub get",
+      "group": {
+        "kind": "build",
+      },
+      "problemMatcher": ["$dart"]
+    },
+    
+    {
+        "label": "Flutter: Build",
+        "type": "shell",
+        "command": "flutter build apk", // or flutter build ios/web
+        "group": {
+          "kind": "build",
+          "isDefault": false
+        },
+        "problemMatcher": ["$dart"]
+      }
+  ]
+}

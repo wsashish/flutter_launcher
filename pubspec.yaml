@@ -34,6 +34,8 @@ dependencies:
   http: ^1.1.0
   url_launcher: ^6.1.11
   html: ^0.15.4
+  android_intent_plus: ^4.0.3
+  flutter_svg: ^2.0.9
 
 dev_dependencies:
   flutter_test:
@@ -48,8 +50,8 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
+  assets:
+    - assets/icons/google-play-icon.svg
   #   - images/a_dot_ham.jpeg
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware.

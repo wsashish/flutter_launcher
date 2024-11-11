@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as parser;
+import 'package:flutter/scheduler.dart';
+import 'dart:async';
+import 'package:android_intent_plus/android_intent.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -23,8 +27,30 @@ class _HomePageStateState extends State<HomePageState> {
   final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> searchResults = [];
   bool isLoading = false;
-  Offset _searchPosition = Offset(0, 100); // Initial position
+  Offset _searchPosition = Offset(0, 100);
   bool showSearchResults = false;
+  bool _isDraggable = false;
+  Offset _playStorePosition = Offset(0, 200);
+  bool _isPlayStoreDraggable = false;
+  final double itemHeight = 56.0;
+  final double spacing = 20.0;
+  bool isSearchOnTop = true;
+  String? draggingItem;
+  bool isTransitioning = false;
+  Offset _folderPosition = Offset(0, 300);
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final screenWidth = MediaQuery.of(context).size.width;
+      setState(() {
+        _searchPosition = Offset((screenWidth - 300) / 5, 100);
+        _playStorePosition = Offset((screenWidth - 300) / 5, 200);
+        _folderPosition = Offset((screenWidth - 300) / 5, 300);
+      });
+    });
+  }
 
   Future<void> _performSearch(String query) async {
     setState(() {
@@ -73,69 +99,221 @@ class _HomePageStateState extends State<HomePageState> {
     }
   }
 
+  void _startDragging(String itemType) {
+    setState(() {
+      draggingItem = itemType;
+    });
+
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierDismissible: false,
+        barrierColor: Colors.transparent,
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            DragOverlayScreen(
+          initialPosition: itemType == 'search'
+              ? _searchPosition
+              : itemType == 'playstore'
+                  ? _playStorePosition
+                  : _folderPosition,
+          itemType: itemType,
+          onDragEnd: (finalPosition) {
+            setState(() {
+              if (itemType == 'search') {
+                _searchPosition = finalPosition;
+              } else if (itemType == 'playstore') {
+                _playStorePosition = finalPosition;
+              } else {
+                _folderPosition = finalPosition;
+              }
+            });
+            Navigator.of(context).pop();
+            Future.delayed(Duration(milliseconds: 100), () {
+              if (mounted) {
+                setState(() {
+                  draggingItem = null;
+                });
+              }
+            });
+          },
+          otherItemPosition:
+              itemType == 'search' ? _playStorePosition : _searchPosition,
+          searchButton: _buildSearchButton(),
+          playStoreButton: _buildPlayStoreButton(),
+          folderButton: _buildFolderButton(),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
+          // Search Widget
           Positioned(
             left: _searchPosition.dx,
             top: _searchPosition.dy,
-            child: GestureDetector(
-              onPanUpdate: (details) {
-                setState(() {
-                  _searchPosition = Offset(
-                    _searchPosition.dx + details.delta.dx,
-                    _searchPosition.dy + details.delta.dy,
-                  );
-                });
-              },
-              child: Container(
-                constraints: BoxConstraints(
-                  maxWidth: MediaQuery.of(context).size.width * 0.9,
-                  minWidth: MediaQuery.of(context).size.width * 0.5,
-                ),
-                color: Colors.white,
-                padding: const EdgeInsets.all(16),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Search Yahoo...',
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.search),
-                      onPressed: () => _openSearchScreen(),
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                  onTap: () => _openSearchScreen(),
-                  readOnly: true, // Make it open search screen on tap
-                ),
+            child: Visibility(
+              visible: draggingItem != 'search',
+              child: GestureDetector(
+                onLongPress: () => _startDragging('search'),
+                child: _buildSearchButton(),
+              ),
+            ),
+          ),
+
+          // Play Store Icon
+          Positioned(
+            left: _playStorePosition.dx,
+            top: _playStorePosition.dy,
+            child: Visibility(
+              visible: draggingItem != 'playstore',
+              child: GestureDetector(
+                onLongPress: () => _startDragging('playstore'),
+                child: _buildPlayStoreButton(),
+              ),
+            ),
+          ),
+
+          // Folder Button
+          Positioned(
+            left: _folderPosition.dx,
+            top: _folderPosition.dy,
+            child: Visibility(
+              visible: draggingItem != 'folder',
+              child: GestureDetector(
+                onLongPress: () => _startDragging('folder'),
+                child: _buildFolderButton(),
               ),
             ),
           ),
         ],
       ),
-      bottomNavigationBar: BottomAppBar(
+      bottomNavigationBar: Container(
+        height: 56,
         color: Colors.transparent,
-        elevation: 0,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            IconButton(
+              icon: Icon(Icons.phone),
+              onPressed: () async {
+                Navigator.pushNamed(context, 'phone');
+              },
+            ),
+            IconButton(
+              icon: Icon(Icons.apps),
+              onPressed: () {
+                Navigator.pushNamed(context, 'apps');
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchButton() {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.all(Radius.circular(10)),
+        color: Colors.white,
+      ),
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.of(context).size.width * 0.9,
+        minWidth: MediaQuery.of(context).size.width * 0.5,
+      ),
+      child: MaterialButton(
+        onPressed: _openSearchScreen,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Search Yahoo...',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 16,
+              ),
+            ),
+            Icon(
+              Icons.search,
+              color: Colors.grey[600],
+            ),
+          ],
+        ),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: BorderSide(color: Colors.grey[300]!),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlayStoreButton() {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.all(Radius.circular(10)),
+        color: Colors.white,
+      ),
+      child: GestureDetector(
+        onTap: () async {
+          final AndroidIntent intent = AndroidIntent(
+            action: 'android.intent.action.MAIN',
+            category: 'android.intent.category.LAUNCHER',
+            package: 'com.android.vending',
+          );
+          await intent.launch();
+        },
         child: Container(
-          height: 70,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          width: 60,
+          height: 60,
+          padding: EdgeInsets.all(8),
+          child: SvgPicture.asset(
+            'assets/icons/google-play-icon.svg',
+            width: 40,
+            height: 40,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFolderButton() {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.all(Radius.circular(10)),
+        color: Colors.white.withOpacity(0.8),
+      ),
+      child: GestureDetector(
+        onTap: () {
+          showModalBottomSheet(
+            context: context,
+            backgroundColor: Colors.transparent,
+            builder: (context) => FolderContentScreen(),
+          );
+        },
+        child: Container(
+          width: 60,
+          height: 60,
+          padding: EdgeInsets.all(4),
+          child: GridView.count(
+            crossAxisCount: 2,
+            padding: EdgeInsets.all(4),
             children: [
-              IconButton(
-                onPressed: () => Navigator.pushNamed(context, "phone"),
-                icon: Icon(Icons.phone),
+              SvgPicture.asset(
+                'assets/icons/google-play-icon.svg',
+                width: 20,
+                height: 20,
               ),
-              IconButton(
-                icon: Icon(Icons.apps),
-                onPressed: () => Navigator.pushNamed(context, "apps"),
-              ),
+              Icon(Icons.web, size: 20),
+              Icon(Icons.shopping_bag, size: 20),
+              Icon(Icons.games, size: 20),
             ],
           ),
         ),
@@ -324,5 +502,247 @@ class _SearchScreenState extends State<SearchScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+}
+
+class DragOverlayScreen extends StatefulWidget {
+  final Offset initialPosition;
+  final String itemType;
+  final Function(Offset) onDragEnd;
+  final Offset otherItemPosition;
+  final Widget searchButton;
+  final Widget playStoreButton;
+  final Widget folderButton;
+
+  const DragOverlayScreen({
+    required this.initialPosition,
+    required this.itemType,
+    required this.onDragEnd,
+    required this.otherItemPosition,
+    required this.searchButton,
+    required this.playStoreButton,
+    required this.folderButton,
+  });
+
+  @override
+  _DragOverlayScreenState createState() => _DragOverlayScreenState();
+}
+
+class _DragOverlayScreenState extends State<DragOverlayScreen> {
+  late Offset _currentPosition;
+  final double itemHeight = 56.0;
+  final double spacing = 20.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentPosition = widget.initialPosition;
+  }
+
+  Offset _getAdjustedPosition(BuildContext context) {
+    final itemRect = Rect.fromLTWH(
+      _currentPosition.dx,
+      _currentPosition.dy,
+      300,
+      itemHeight,
+    );
+    final otherRect = Rect.fromLTWH(
+      widget.otherItemPosition.dx,
+      widget.otherItemPosition.dy,
+      300,
+      itemHeight,
+    );
+
+    if (itemRect.overlaps(otherRect)) {
+      final screenHeight = MediaQuery.of(context).size.height - 70;
+
+      // Determine if we should move up or down based on the center points
+      final itemCenter = _currentPosition.dy + (itemHeight / 2);
+      final otherCenter = widget.otherItemPosition.dy + (itemHeight / 2);
+
+      if (itemCenter < otherCenter) {
+        // Move above if there's space
+        final newY = widget.otherItemPosition.dy - itemHeight - spacing;
+        if (newY >= 0) {
+          return Offset(_currentPosition.dx, newY);
+        } else {
+          // If no space above, move below
+          return Offset(_currentPosition.dx,
+              widget.otherItemPosition.dy + itemHeight + spacing);
+        }
+      } else {
+        // Move below if there's space
+        final newY = widget.otherItemPosition.dy + itemHeight + spacing;
+        if (newY + itemHeight <= screenHeight) {
+          return Offset(_currentPosition.dx, newY);
+        } else {
+          // If no space below, move above
+          return Offset(_currentPosition.dx,
+              widget.otherItemPosition.dy - itemHeight - spacing);
+        }
+      }
+    }
+
+    return _currentPosition;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          Positioned(
+            left: _currentPosition.dx,
+            top: _currentPosition.dy,
+            child: GestureDetector(
+              onPanUpdate: (details) {
+                setState(() {
+                  _currentPosition = Offset(
+                    _currentPosition.dx + details.delta.dx,
+                    _currentPosition.dy + details.delta.dy,
+                  );
+                });
+              },
+              onPanEnd: (_) {
+                final adjustedPosition = _getAdjustedPosition(context);
+                widget.onDragEnd(adjustedPosition);
+              },
+              child: widget.itemType == 'search'
+                  ? widget.searchButton
+                  : widget.itemType == 'playstore'
+                      ? widget.playStoreButton
+                      : widget.folderButton,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class FolderContentScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.all(16),
+            child: Text(
+              'Quick Links',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Expanded(
+            child: GridView.count(
+              crossAxisCount: 4,
+              padding: EdgeInsets.all(12),
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 0.9,
+              children: [
+                _buildIconTile(
+                  context,
+                  icon: SvgPicture.asset(
+                    'assets/icons/google-play-icon.svg',
+                    width: 40,
+                    height: 40,
+                  ),
+                  label: 'Play Store',
+                  onTap: () async {
+                    final AndroidIntent intent = AndroidIntent(
+                      action: 'android.intent.action.MAIN',
+                      category: 'android.intent.category.LAUNCHER',
+                      package: 'com.android.vending',
+                    );
+                    await intent.launch();
+                  },
+                ),
+                _buildIconTile(
+                  context,
+                  icon: Icon(Icons.search, size: 32, color: Colors.purple),
+                  label: 'Yahoo',
+                  onTap: () async {
+                    final url = Uri.parse('https://www.yahoo.com');
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url,
+                          mode: LaunchMode.externalApplication);
+                    }
+                  },
+                ),
+                _buildIconTile(
+                  context,
+                  icon:
+                      Icon(Icons.shopping_cart, size: 32, color: Colors.orange),
+                  label: 'Amazon',
+                  onTap: () async {
+                    final url = Uri.parse('https://www.amazon.com');
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url,
+                          mode: LaunchMode.externalApplication);
+                    }
+                  },
+                ),
+                _buildIconTile(
+                  context,
+                  icon: Icon(Icons.facebook, size: 32, color: Colors.blue),
+                  label: 'Facebook',
+                  onTap: () async {
+                    final url = Uri.parse('https://www.facebook.com');
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url,
+                          mode: LaunchMode.externalApplication);
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIconTile(
+    BuildContext context, {
+    required Widget icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: icon,
+          ),
+          SizedBox(height: 4),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 11, overflow: TextOverflow.ellipsis),
+          ),
+        ],
+      ),
+    );
   }
 }

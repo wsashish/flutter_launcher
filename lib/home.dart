@@ -52,8 +52,16 @@ class _HomePageStateState extends State<HomePageState> {
   }
 
   void _initializePositions() {
+    // Get screen dimensions
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+
+    // Ensure we have valid dimensions
+    if (screenWidth <= 0 || screenHeight <= 0) {
+      // Set fallback positions if dimensions are invalid
+      _setFallbackPositions();
+      return;
+    }
 
     // Search position - centered horizontally, fixed distance from top
     _searchPosition = Offset(
@@ -78,6 +86,44 @@ class _HomePageStateState extends State<HomePageState> {
     _folderPosition = Offset(startX + (iconWidth + spacing), bottomY);
     _chromePosition = Offset(startX + (iconWidth + spacing) * 2, bottomY);
     _settingsPosition = Offset(startX + (iconWidth + spacing) * 3, bottomY);
+
+    // Verify positions are valid
+    _validateAndAdjustPositions(screenWidth, screenHeight);
+  }
+
+  void _setFallbackPositions() {
+    _searchPosition = const Offset(20, 100);
+    _playStorePosition = const Offset(20, 200);
+    _folderPosition = const Offset(100, 200);
+    _chromePosition = const Offset(180, 200);
+    _settingsPosition = const Offset(260, 200);
+  }
+
+  void _validateAndAdjustPositions(double screenWidth, double screenHeight) {
+    // Ensure search bar stays within bounds
+    if (_searchPosition.dx < 0)
+      _searchPosition = Offset(20, _searchPosition.dy);
+    if (_searchPosition.dx > screenWidth - 100) {
+      _searchPosition = Offset(screenWidth - 320, _searchPosition.dy);
+    }
+
+    // Ensure bottom icons stay within bounds
+    final adjustPositionIfNeeded = (Offset position) {
+      double x = position.dx;
+      double y = position.dy;
+
+      if (x < 0) x = 20;
+      if (x > screenWidth - 80) x = screenWidth - 80;
+      if (y < 0) y = 100;
+      if (y > screenHeight - 100) y = screenHeight - 100;
+
+      return Offset(x, y);
+    };
+
+    _playStorePosition = adjustPositionIfNeeded(_playStorePosition);
+    _folderPosition = adjustPositionIfNeeded(_folderPosition);
+    _chromePosition = adjustPositionIfNeeded(_chromePosition);
+    _settingsPosition = adjustPositionIfNeeded(_settingsPosition);
   }
 
   Future<void> _performSearch(String query) async {
@@ -188,6 +234,12 @@ class _HomePageStateState extends State<HomePageState> {
 
   @override
   Widget build(BuildContext context) {
+    // Ensure positions are initialized even if didChangeDependencies hasn't run
+    if (!_isInitialized) {
+      _initializePositions();
+      _isInitialized = true;
+    }
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(

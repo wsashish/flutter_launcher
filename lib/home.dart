@@ -55,14 +55,29 @@ class _HomePageStateState extends State<HomePageState> {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
-    _searchPosition = Offset((screenWidth - 300) / 5, 100);
-    final bottomY = screenHeight - 150;
-    final spacing = (screenWidth - 300) / 4;
+    // Search position - centered horizontally, fixed distance from top
+    _searchPosition = Offset(
+        (screenWidth - screenWidth * 0.9) / 2, // Center horizontally
+        100 // Fixed distance from top
+        );
 
-    _playStorePosition = Offset(spacing, bottomY);
-    _folderPosition = Offset(spacing + 100, bottomY);
-    _chromePosition = Offset(spacing + 200, bottomY);
-    _settingsPosition = Offset(spacing + 300, bottomY);
+    // Bottom icons positioning
+    final bottomY = screenHeight - 150; // Moved up slightly
+    final iconWidth = 60.0; // Width of each icon
+    final totalIcons = 4; // Number of icons
+    final totalWidth = iconWidth * totalIcons;
+    final horizontalPadding = 20.0; // Padding from screen edges
+
+    // Calculate spacing between icons
+    final availableWidth = screenWidth - (2 * horizontalPadding);
+    final spacing = (availableWidth - totalWidth) / (totalIcons - 1);
+
+    // Position each icon with equal spacing
+    final startX = horizontalPadding;
+    _playStorePosition = Offset(startX, bottomY);
+    _folderPosition = Offset(startX + (iconWidth + spacing), bottomY);
+    _chromePosition = Offset(startX + (iconWidth + spacing) * 2, bottomY);
+    _settingsPosition = Offset(startX + (iconWidth + spacing) * 3, bottomY);
   }
 
   Future<void> _performSearch(String query) async {
@@ -279,10 +294,7 @@ class _HomePageStateState extends State<HomePageState> {
         borderRadius: BorderRadius.all(Radius.circular(10)),
         color: Colors.white,
       ),
-      constraints: BoxConstraints(
-        maxWidth: MediaQuery.of(context).size.width * 0.9,
-        minWidth: MediaQuery.of(context).size.width * 0.5,
-      ),
+      width: MediaQuery.of(context).size.width * 0.9,
       child: MaterialButton(
         onPressed: _openSearchScreen,
         child: Row(

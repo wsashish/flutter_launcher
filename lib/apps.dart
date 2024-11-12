@@ -82,7 +82,9 @@ class _AppsPageState extends State<AppsPage>
                               ))
                         ],
                       ),
-                loading: () => CircularProgressIndicator(),
+                loading: () => Center(
+                      child: CircularProgressIndicator(),
+                    ),
                 error: (e, s) => Container()));
       },
     );

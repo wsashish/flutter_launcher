@@ -44,10 +44,12 @@ class _HomePageStateState extends State<HomePageState> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final screenWidth = MediaQuery.of(context).size.width;
+      final screenHeight = MediaQuery.of(context).size.height;
       setState(() {
         _searchPosition = Offset((screenWidth - 300) / 5, 100);
-        _playStorePosition = Offset((screenWidth - 300) / 5, 200);
-        _folderPosition = Offset((screenWidth - 300) / 5, 300);
+        _playStorePosition =
+            Offset(screenWidth * 0.25 - 80, screenHeight - 150);
+        _folderPosition = Offset(screenWidth * 0.25, screenHeight - 150);
       });
     });
   }
@@ -201,13 +203,19 @@ class _HomePageStateState extends State<HomePageState> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             IconButton(
-              icon: Icon(Icons.phone),
+              icon: Icon(
+                Icons.phone,
+                color: Colors.white,
+              ),
               onPressed: () async {
                 Navigator.pushNamed(context, 'phone');
               },
             ),
             IconButton(
-              icon: Icon(Icons.apps),
+              icon: Icon(
+                Icons.apps,
+                color: Colors.white,
+              ),
               onPressed: () {
                 Navigator.pushNamed(context, 'apps');
               },

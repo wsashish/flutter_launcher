@@ -30,6 +30,8 @@ class _HomePageStateState extends State<HomePageState> {
   late Offset _searchPosition;
   late Offset _playStorePosition;
   late Offset _folderPosition;
+  late Offset _chromePosition;
+  late Offset _settingsPosition;
   bool showSearchResults = false;
   bool _isDraggable = false;
   bool _isPlayStoreDraggable = false;
@@ -54,8 +56,13 @@ class _HomePageStateState extends State<HomePageState> {
     final screenHeight = MediaQuery.of(context).size.height;
 
     _searchPosition = Offset((screenWidth - 300) / 5, 100);
-    _playStorePosition = Offset(screenWidth * 0.25 - 80, screenHeight - 150);
-    _folderPosition = Offset(screenWidth * 0.25, screenHeight - 150);
+    final bottomY = screenHeight - 150;
+    final spacing = (screenWidth - 300) / 4;
+
+    _playStorePosition = Offset(spacing, bottomY);
+    _folderPosition = Offset(spacing + 100, bottomY);
+    _chromePosition = Offset(spacing + 200, bottomY);
+    _settingsPosition = Offset(spacing + 300, bottomY);
   }
 
   Future<void> _performSearch(String query) async {
@@ -123,7 +130,11 @@ class _HomePageStateState extends State<HomePageState> {
               ? _searchPosition
               : itemType == 'playstore'
                   ? _playStorePosition
-                  : _folderPosition,
+                  : itemType == 'folder'
+                      ? _folderPosition
+                      : itemType == 'chrome'
+                          ? _chromePosition
+                          : _settingsPosition,
           itemType: itemType,
           onDragEnd: (finalPosition) {
             setState(() {
@@ -131,8 +142,12 @@ class _HomePageStateState extends State<HomePageState> {
                 _searchPosition = finalPosition;
               } else if (itemType == 'playstore') {
                 _playStorePosition = finalPosition;
-              } else {
+              } else if (itemType == 'folder') {
                 _folderPosition = finalPosition;
+              } else if (itemType == 'chrome') {
+                _chromePosition = finalPosition;
+              } else if (itemType == 'settings') {
+                _settingsPosition = finalPosition;
               }
             });
             Navigator.of(context).pop();
@@ -149,6 +164,8 @@ class _HomePageStateState extends State<HomePageState> {
           searchButton: _buildSearchButton(),
           playStoreButton: _buildPlayStoreButton(),
           folderButton: _buildFolderButton(),
+          chromeButton: _buildChromeButton(),
+          settingsButton: _buildSettingsButton(),
         ),
       ),
     );
@@ -195,6 +212,32 @@ class _HomePageStateState extends State<HomePageState> {
               child: GestureDetector(
                 onLongPress: () => _startDragging('folder'),
                 child: _buildFolderButton(),
+              ),
+            ),
+          ),
+
+          // Chrome Icon
+          Positioned(
+            left: _chromePosition.dx,
+            top: _chromePosition.dy,
+            child: Visibility(
+              visible: draggingItem != 'chrome',
+              child: GestureDetector(
+                onLongPress: () => _startDragging('chrome'),
+                child: _buildChromeButton(),
+              ),
+            ),
+          ),
+
+          // Settings Icon
+          Positioned(
+            left: _settingsPosition.dx,
+            top: _settingsPosition.dy,
+            child: Visibility(
+              visible: draggingItem != 'settings',
+              child: GestureDetector(
+                onLongPress: () => _startDragging('settings'),
+                child: _buildSettingsButton(),
               ),
             ),
           ),
@@ -327,6 +370,62 @@ class _HomePageStateState extends State<HomePageState> {
               Icon(Icons.shopping_bag, size: 20),
               Icon(Icons.games, size: 20),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChromeButton() {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.all(Radius.circular(10)),
+        color: Colors.white,
+      ),
+      child: GestureDetector(
+        onTap: () async {
+          final AndroidIntent intent = AndroidIntent(
+            action: 'android.intent.action.MAIN',
+            category: 'android.intent.category.LAUNCHER',
+            package: 'com.android.chrome',
+          );
+          await intent.launch();
+        },
+        child: Container(
+          width: 60,
+          height: 60,
+          padding: EdgeInsets.all(8),
+          child: Icon(
+            Icons.public,
+            size: 32,
+            color: Colors.blue,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsButton() {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.all(Radius.circular(10)),
+        color: Colors.white,
+      ),
+      child: GestureDetector(
+        onTap: () async {
+          final AndroidIntent intent = AndroidIntent(
+            action: 'android.settings.SETTINGS',
+          );
+          await intent.launch();
+        },
+        child: Container(
+          width: 60,
+          height: 60,
+          padding: EdgeInsets.all(8),
+          child: Icon(
+            Icons.settings,
+            size: 32,
+            color: Colors.grey[700],
           ),
         ),
       ),
@@ -525,6 +624,8 @@ class DragOverlayScreen extends StatefulWidget {
   final Widget searchButton;
   final Widget playStoreButton;
   final Widget folderButton;
+  final Widget chromeButton;
+  final Widget settingsButton;
 
   const DragOverlayScreen({
     required this.initialPosition,
@@ -534,6 +635,8 @@ class DragOverlayScreen extends StatefulWidget {
     required this.searchButton,
     required this.playStoreButton,
     required this.folderButton,
+    required this.chromeButton,
+    required this.settingsButton,
   });
 
   @override
@@ -624,7 +727,11 @@ class _DragOverlayScreenState extends State<DragOverlayScreen> {
                   ? widget.searchButton
                   : widget.itemType == 'playstore'
                       ? widget.playStoreButton
-                      : widget.folderButton,
+                      : widget.itemType == 'folder'
+                          ? widget.folderButton
+                          : widget.itemType == 'chrome'
+                              ? widget.chromeButton
+                              : widget.settingsButton,
             ),
           ),
         ],

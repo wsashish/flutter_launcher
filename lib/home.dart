@@ -62,7 +62,7 @@ class _HomePageStateState extends State<HomePageState> {
         );
 
     // Bottom icons positioning
-    final bottomY = screenHeight - 150; // Moved up slightly
+    final bottomY = screenHeight * 0.7; // Moved up slightly
     final iconWidth = 60.0; // Width of each icon
     final totalIcons = 4; // Number of icons
     final totalWidth = iconWidth * totalIcons;

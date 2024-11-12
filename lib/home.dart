@@ -27,31 +27,35 @@ class _HomePageStateState extends State<HomePageState> {
   final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> searchResults = [];
   bool isLoading = false;
-  Offset _searchPosition = Offset(0, 100);
+  late Offset _searchPosition;
+  late Offset _playStorePosition;
+  late Offset _folderPosition;
   bool showSearchResults = false;
   bool _isDraggable = false;
-  Offset _playStorePosition = Offset(0, 200);
   bool _isPlayStoreDraggable = false;
   final double itemHeight = 56.0;
   final double spacing = 20.0;
   bool isSearchOnTop = true;
   String? draggingItem;
   bool isTransitioning = false;
-  Offset _folderPosition = Offset(0, 300);
+  bool _isInitialized = false;
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final screenWidth = MediaQuery.of(context).size.width;
-      final screenHeight = MediaQuery.of(context).size.height;
-      setState(() {
-        _searchPosition = Offset((screenWidth - 300) / 5, 100);
-        _playStorePosition =
-            Offset(screenWidth * 0.25 - 80, screenHeight - 150);
-        _folderPosition = Offset(screenWidth * 0.25, screenHeight - 150);
-      });
-    });
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_isInitialized) {
+      _initializePositions();
+      _isInitialized = true;
+    }
+  }
+
+  void _initializePositions() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    _searchPosition = Offset((screenWidth - 300) / 5, 100);
+    _playStorePosition = Offset(screenWidth * 0.25 - 80, screenHeight - 150);
+    _folderPosition = Offset(screenWidth * 0.25, screenHeight - 150);
   }
 
   Future<void> _performSearch(String query) async {
